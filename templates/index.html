@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Proactive-TQ Dashboard</title>
+
+    <style>
+        body {
+            font-family: 'Segoe UI', Arial;
+            background: #0f172a;
+            color: #e2e8f0;
+            margin: 0;
+            padding: 30px;
+        }
+
+        h1 {
+            margin-bottom: 10px;
+        }
+
+        h2 {
+            margin-top: 30px;
+            margin-bottom: 10px;
+            color: #94a3b8;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: auto;
+        }
+
+        .card {
+            background: #1e293b;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        }
+
+        input, select {
+            padding: 10px;
+            margin: 5px 5px 5px 0;
+            border-radius: 6px;
+            border: none;
+            outline: none;
+        }
+
+        button {
+            padding: 8px 12px;
+            margin: 5px 5px 5px 0;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            background: #3b82f6;
+            color: white;
+            transition: 0.2s;
+        }
+
+        button:hover {
+            background: #2563eb;
+        }
+
+        .danger {
+            background: #ef4444;
+        }
+
+        .danger:hover {
+            background: #dc2626;
+        }
+
+        .status {
+            font-size: 13px;
+            padding: 3px 8px;
+            border-radius: 6px;
+            margin-left: 5px;
+        }
+
+        .Open { background: #ef4444; }
+        .In-Progress { background: #f59e0b; }
+        .Resolved { background: #10b981; }
+        .Closed { background: #64748b; }
+        .Innovation { background: #8b5cf6; }
+
+        .worklog {
+            background: #0f172a;
+            padding: 8px;
+            border-radius: 6px;
+            margin-top: 5px;
+            font-size: 13px;
+        }
+
+        .small {
+            font-size: 12px;
+            color: #94a3b8;
+        }
+
+        .flex {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .error-msg {
+            color: #ef4444;
+            font-size: 14px;
+            margin-top: 8px;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <h1>🎫 Proactive-TQ Dashboard</h1>
+
+    <div class="card">
+        <h2>Create / Edit Ticket</h2>
+
+        <div class="flex">
+            <input id="title" placeholder="Title">
+            <input id="description" placeholder="Description">
+
+            <select id="status">
+                <option>Open</option>
+                <option>In Progress</option>
+                <option>Resolved</option>
+                <option>Closed</option>
+                <option>Innovation</option>
+            </select>
+
+            <button onclick="submitTicket()">Save</button>
+            <button onclick="resetForm()">Clear</button>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>Tickets</h2>
+        <button onclick="loadTickets()">🔄 Refresh</button>
+        <div id="tickets"></div>
+    </div>
+
+</div>
+
+<script>
+
+    let currentEditId = null;
+
+    function resetForm() {
+        document.getElementById("title").value = "";
+        document.getElementById("description").value = "";
+        document.getElementById("status").value = "Open";
+        currentEditId = null;
+    }
+
+    async function loadTickets() {
+        const container = document.getElementById("tickets");
+        container.innerHTML = "<p>Loading...</p>";
+
+        try {
+            const res = await fetch("/tickets");
+
+            if (!res.ok) {
+                container.innerHTML = "<p class='error-msg'>Failed to load tickets. Server returned " + res.status + ".</p>";
+                return;
+            }
+
+            const data = await res.json();
+            container.innerHTML = "";
+
+            if (data.length === 0) {
+                container.innerHTML = "<p>No tickets yet. Create one above.</p>";
+                return;
+            }
+
+            data.forEach(ticket => {
+                const div = document.createElement("div");
+                div.className = "card";
+
+                const statusClass = ticket.status.replace(" ", "-");
+
+                div.innerHTML = `
+                    <strong>${ticket.title}</strong>
+                    <span class="status ${statusClass}">${ticket.status}</span><br>
+                    ${ticket.description}<br>
+
+                    <button onclick="editTicket(${ticket.id})">Edit</button>
+                    <button class="danger" onclick="deleteTicket(${ticket.id})">Delete</button>
+
+                    <div style="margin-top:10px;">
+                        <input placeholder="Add worklog..." id="wl-${ticket.id}">
+                        <button onclick="addWorklog(${ticket.id})">Add Log</button>
+                    </div>
+
+                    <div id="logs-${ticket.id}"></div>
+                `;
+
+                container.appendChild(div);
+                loadWorklogs(ticket.id);
+            });
+
+        } catch (err) {
+            container.innerHTML = "<p class='error-msg'>Error loading tickets: " + err.message + "</p>";
+        }
+    }
+
+    function editTicket(id) {
+        fetch(`/tickets/${id}`)
+            .then(res => res.json())
+            .then(ticket => {
+                document.getElementById("title").value = ticket.title;
+                document.getElementById("description").value = ticket.description;
+                document.getElementById("status").value = ticket.status;
+                currentEditId = id;
+            })
+            .catch(err => alert("Failed to load ticket: " + err.message));
+    }
+
+    async function submitTicket() {
+        const data = {
+            title: document.getElementById("title").value.trim(),
+            description: document.getElementById("description").value.trim(),
+            status: document.getElementById("status").value
+        };
+
+        if (!data.title || !data.description) {
+            alert("Title and description are required.");
+            return;
+        }
+
+        try {
+            if (currentEditId) {
+                await fetch(`/tickets/${currentEditId}`, {
+                    method: "PUT",
+                    headers: {"Content-Type": "application/json"},
+                    body: JSON.stringify(data)
+                });
+            } else {
+                await fetch("/tickets", {
+                    method: "POST",
+                    headers: {"Content-Type": "application/json"},
+                    body: JSON.stringify(data)
+                });
+            }
+
+            resetForm();
+            loadTickets();
+
+        } catch (err) {
+            alert("Failed to save ticket: " + err.message);
+        }
+    }
+
+    async function deleteTicket(id) {
+        if (!confirm("Are you sure you want to delete this ticket?")) return;
+
+        try {
+            await fetch(`/tickets/${id}`, { method: "DELETE" });
+            loadTickets();
+        } catch (err) {
+            alert("Failed to delete ticket: " + err.message);
+        }
+    }
+
+    async function addWorklog(id) {
+        const input = document.getElementById(`wl-${id}`);
+        const message = input.value.trim();
+
+        if (!message) return;
+
+        try {
+            await fetch(`/tickets/${id}/worklogs`, {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({ message })
+            });
+
+            input.value = "";
+            loadWorklogs(id);
+
+        } catch (err) {
+            alert("Failed to add worklog: " + err.message);
+        }
+    }
+
+    async function loadWorklogs(id) {
+        try {
+            const res = await fetch(`/tickets/${id}/worklogs`);
+            const logs = await res.json();
+
+            const container = document.getElementById(`logs-${id}`);
+            container.innerHTML = logs.map(l => `
+                <div class="worklog">
+                    📝 ${l.message}
+                    <div class="small">${l.created_at}</div>
+                </div>
+            `).join("");
+
+        } catch (err) {
+            console.error("Failed to load worklogs for ticket " + id, err);
+        }
+    }
+
+    document.addEventListener("DOMContentLoaded", loadTickets);
+
+</script>
+
+</body>
+</html>
+
