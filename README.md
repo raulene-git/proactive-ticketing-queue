@@ -79,7 +79,7 @@ schema.sql          SQL Server schema (Tickets, WorkLogs)
 
 ## How it was built
 
-I built it myself with **GitHub Copilot** as a coding assistant. I designed the workflow, data model and features, and reviewed and tested the generated code.
+Built with AI coding assistants (**Claude** and **GitHub Copilot**). I came up with the idea and the support workflow it models, and I ran, tested and iterated on it in my own environment.
 
 ## License
 
