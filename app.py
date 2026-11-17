@@ -1,4 +1,6 @@
 from flask import Flask, jsonify, request, render_template, redirect, url_for
+import os
+
 import pyodbc
 
 app = Flask(__name__)
@@ -7,13 +9,18 @@ app = Flask(__name__)
 # DB CONNECTION
 # -------------------------
 
+# The connection string is read from the environment so no machine names or
+# credentials are stored in the repository. See .env.example.
+DEFAULT_CONNECTION = (
+    "DRIVER={ODBC Driver 17 for SQL Server};"
+    "SERVER=localhost\\SQLEXPRESS;"
+    "DATABASE=ProactiveTQ;"
+    "Trusted_Connection=yes;"
+)
+
+
 def get_db_connection():
-    return pyodbc.connect(
-        "DRIVER={ODBC Driver 17 for SQL Server};"
-        "SERVER=AP-HJ-LPT-R44UL\\SQLEXPRESS;"
-        "DATABASE=ProactiveTQ;"
-        "Trusted_Connection=yes;"
-    )
+    return pyodbc.connect(os.environ.get("PTQ_DB_CONNECTION", DEFAULT_CONNECTION))
 
 # -------------------------
 # HELPERS
@@ -300,4 +307,4 @@ def get_worklogs(ticket_id):
 # -------------------------
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(debug=os.environ.get("FLASK_DEBUG") == "1")

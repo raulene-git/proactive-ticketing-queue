@@ -1,66 +1,86 @@
-# Proactive-Ticketing-Queue
+# Proactive Ticketing Queue
 
-## Overview
-Proactive‑Ticketing‑Queue is my personal IT ticketing system built to explore proactive* service desk practices rather than purely reactive support.
+A lightweight IT ticketing and worklog system built with **Flask** and **SQL Server**. It's for tracking the proactive and project work that doesn't fit neatly into a service desk ticket.
 
-The focus of this project is not just ticket handling, but:
-- Structured workflows
-- Visibility of repeat issues
-- Building foundations for automation and insight‑driven support
+![Python](https://img.shields.io/badge/Python-Flask-3776AB?logo=python&logoColor=white)
+![SQL Server](https://img.shields.io/badge/SQL%20Server-pyodbc-CC2927?logo=microsoftsqlserver&logoColor=white)
+![License](https://img.shields.io/badge/license-MIT-green)
 
-This project is intentionally lightweight and practical, reflecting real-world support environments.
+## Why it exists
 
----
+In many IT support environments, project and improvement work can't always be logged as a service desk ticket, so that progress becomes invisible. This project explores how a small ticketing system can:
 
-## Why This Project Exists
-In many IT support environments, tickets can not be always be logged for project tickets so keeping progress of personal work that cannot be categorised into a 'Service Desk' Ticket is difficult
+- encourage better categorisation and structure
+- make project work visible
+- support proactive documentation and communication
+- act as a base for future automation and AI-assisted tooling
 
-This project explores how a ticketing system can:
-- Encourage better categorisation and structure
-- Make projects more visible
-- Support proactive documentation and communication
-- Act as a base for future automation and AI-assisted tooling
+## Features
 
----
+- Create, view, update and delete tickets (REST API + web dashboard)
+- Status lifecycle: **Open → In Progress → Resolved → Closed**
+- Per-ticket **worklogs** with timestamps
+- Parameterised SQL queries via `pyodbc`
 
-## Current Functionality
-- Ticket creation and retrieval
-- Status lifecycle handling  
-  *(Open → In Progress → Resolved → Closed)*
-- Flask-based backend logic
-- HTML / JavaScript frontend
-- Database-backed design (local development)
+## API
 
----
+| Method | Route | Purpose |
+| --- | --- | --- |
+| GET | `/tickets` | List tickets (newest first) |
+| POST | `/tickets` | Create a ticket |
+| GET | `/tickets/<id>` | Get one ticket |
+| PUT | `/tickets/<id>` | Update title, description, status |
+| DELETE | `/tickets/<id>` | Delete a ticket |
+| GET | `/tickets/<id>/worklogs` | List worklog entries |
+| POST | `/tickets/<id>/worklogs` | Add a worklog entry |
 
-## Tech Stack
-- **Python** (Flask)
-- **HTML / JavaScript**
-- **SQL** (via `pyodbc`)
-- **GitHub Copilot** (assisted development)
+## Getting started
 
----
+**Prerequisites:** Python 3.11+, SQL Server (Express is fine), [ODBC Driver 17 for SQL Server](https://learn.microsoft.com/sql/connect/odbc/download-odbc-driver-for-sql-server).
 
-## Planned Enhancements
-- Improved Worklog UI
-- Basic analytics for projects I work on
-- API endpoints for automation
-- Role-based access concepts
-- Audit-style change tracking
+```powershell
+git clone https://github.com/raulene-git/proactive-ticketing-queue.git
+cd proactive-ticketing-queue
+python -m venv .venv; .\.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
 
----
+# Create the database and tables
+sqlcmd -S localhost\SQLEXPRESS -i schema.sql
 
-## Data & Security
-This repository contains **no real ticket data**.
+# Point the app at your database (see .env.example)
+$env:PTQ_DB_CONNECTION = "DRIVER={ODBC Driver 17 for SQL Server};SERVER=localhost\SQLEXPRESS;DATABASE=ProactiveTQ;Trusted_Connection=yes;"
+$env:FLASK_DEBUG = "1"
+python app.py
+```
 
-All data is:
-- Local to the developer environment
-- Configured using environment variables
-- Excluded from version control via `.gitignore`
+Then open <http://127.0.0.1:5000>.
 
-Only application logic and structure are stored here.
+## Project structure
 
----
+```
+app.py              Flask app: routes and database access
+templates/index.html  Dashboard UI (HTML + JavaScript)
+schema.sql          SQL Server schema (Tickets, WorkLogs)
+.env.example        Environment variables the app reads
+```
 
-## Project Status
-This is an active learning and experimentation project that evolves alongside my work in enterprise IT environments.
+## Data and security
+
+- No real ticket data is stored in this repository.
+- Connection details come from environment variables, not source code.
+
+## Roadmap
+
+- [ ] Improved worklog UI
+- [ ] Basic analytics (repeat issues, time per category)
+- [ ] Role-based access
+- [ ] Audit-style change history
+- [ ] Rebuild as a SharePoint Framework (SPFx) web part, backed by SharePoint lists
+
+## How it was built
+
+I built it myself with **GitHub Copilot** as a coding assistant. I designed the workflow, data model and features, and reviewed and tested the generated code.
+
+## License
+
+[MIT](LICENSE)
